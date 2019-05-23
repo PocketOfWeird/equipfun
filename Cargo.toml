@@ -1,16 +1,16 @@
 [package]
-name = "juniper-rocket-example"
+name = "equipfun"
 version = "0.1.0"
-authors = ["Eric Dattore <eric.dattore@gmail.com>"]
+authors = ["Nathan Hartzler <hartzlernathan@gmail.com>"]
 edition = "2018"
 
 [lib]
 path = "src/lib.rs"
-name = "libjuniperrocketexample"
+name = "equipfunlib"
 
 [[bin]]
 path = "src/bin/main.rs"
-name = "juniper-rocket-example"
+name = "equipfun"
 
 [dependencies]
 rocket = "0.4"
@@ -18,3 +18,4 @@ rocket_contrib = { version = "0.4", features = ["databases", "cypher_pool"] }
 rusted_cypher = "1.1"
 juniper = "0.12"
 juniper_rocket = "0.3"
+uuid = { version = "0.7", features = ["v4"] }

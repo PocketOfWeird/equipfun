@@ -2,9 +2,9 @@
 
 use rocket::routes;
 
-use libjuniperrocketexample::graphql::schema::{QueryRoot, MutationRoot};
-use libjuniperrocketexample::routes::{self, Schema};
-use libjuniperrocketexample::db::PrimaryDb;
+use equipfunlib::graphql::schema::{QueryRoot, MutationRoot};
+use equipfunlib::routes::{self, Schema};
+use equipfunlib::db::PrimaryDb;
 
 fn main() {
     rocket::ignite()
