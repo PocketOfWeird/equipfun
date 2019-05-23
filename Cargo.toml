@@ -4,17 +4,9 @@ version = "0.1.0"
 authors = ["Nathan Hartzler <hartzlernathan@gmail.com>"]
 edition = "2018"
 
-[lib]
-path = "src/lib.rs"
-name = "equipfunlib"
-
-[[bin]]
-path = "src/bin/main.rs"
-name = "equipfun"
-
 [dependencies]
 rocket = "0.4"
-rocket_contrib = { version = "0.4", features = ["databases", "cypher_pool"] }
+rocket_contrib = { version = "0.4", features = ["databases", "cypher_pool", "serve"] }
 rusted_cypher = "1.1"
 juniper = "0.12"
 juniper_rocket = "0.3"

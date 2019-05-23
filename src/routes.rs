@@ -2,22 +2,8 @@ use rocket::{get, post};
 use rocket::response::content;
 use rocket::State;
 
-use juniper::RootNode;
-
 use crate::db::PrimaryDb;
-use crate::graphql::schema::{QueryRoot, MutationRoot, Context};
-
-pub type Schema = RootNode<'static, QueryRoot, MutationRoot>;
-
-#[get("/")]
-pub fn index() -> &'static str {
-    "Hello, world!"
-}
-
-#[get("/")]
-pub fn graphiql() -> content::Html<String> {
-    juniper_rocket::graphiql_source("/graphql")
-}
+use crate::schema::{Context, Schema};
 
 #[get("/graphql?<request>")]
 pub fn get_graphql_handler(
@@ -35,4 +21,9 @@ pub fn post_graphql_handler(
     schema: State<Schema>
 ) -> juniper_rocket::GraphQLResponse {
     request.execute(&schema, &Context { connection: context })
+}
+
+#[get("/graphiql")]
+pub fn graphiql() -> content::Html<String> {
+    juniper_rocket::graphiql_source("/graphql")
 }

@@ -1,4 +1,4 @@
-use juniper::{Context as JuniperContext, FieldResult};
+use juniper::{RootNode, FieldResult};
 use rusted_cypher::error::GraphError;
 use rusted_cypher::cypher::CypherResult;
 use uuid::Uuid;
@@ -10,27 +10,11 @@ pub struct Context {
     pub connection: PrimaryDb
 }
 
-impl JuniperContext for Context {}
+impl juniper::Context for Context {}
 
-graphql_object!(Todo: () |&self| {
-    description: "A todo item that can be marked as completed"
+pub struct Query;
 
-    field id() -> &str as "The unique id of the todo item" {
-        &self.id
-    }
-
-    field title() -> &str as "The user-editable title" {
-        &self.title
-    }
-
-    field completed() -> bool as "Determines whether the user has completed the item or not" {
-        self.completed
-    }
-});
-
-pub struct QueryRoot;
-
-graphql_object!(QueryRoot: Context |&self| {
+graphql_object!(Query: Context |&self| {
     field todoItems(&executor) -> FieldResult<Vec<Todo>> {
         let statement = "MATCH (t:Todo) RETURN t.id, t.title, t.completed";
         let result: CypherResult = executor.context().connection.exec(statement).or_else(|e: GraphError| Err(e))?;
@@ -44,29 +28,19 @@ graphql_object!(QueryRoot: Context |&self| {
             todos.push(todo);
         }
         return Ok(todos);
-        // use crate::schema::todos::dsl;
-        // use diesel::{RunQueryDsl, QueryDsl};
-        //
-        // dsl::todos.order(dsl::id)
-        //     .load::<Todo>(&*executor.context().connection)
-        //     .map_err(Into::into)
     }
 });
 
 
-pub struct MutationRoot;
+pub struct Mutation;
 
-graphql_object!(MutationRoot: Context |&self| {
+graphql_object!(Mutation: Context |&self| {
     field add_todo(&executor, title: String, completed: bool) -> FieldResult<Todo>
         as "Create a new todo item and return it"
     {
         let id: String = Uuid::new_v4().to_string();
         let statement = format!("CREATE (t:Todo {{id: {:?}, title: {:?}, completed: {:?} }}) RETURN t.id, t.title, t.completed", id, &title, completed);
         let result: CypherResult = executor.context().connection.exec(statement).or_else(|e: GraphError| Err(e))?;
-        // {
-        //     Ok(result) => result,
-        //     Err(error) => return Result::from_error(FieldError::new(format!({}, error), graphql_value!({ "internal_error": "" }))),
-        // };
         let mut todos: Vec<Todo> = Vec::new();
         for row in result.rows() {
             let todo = Todo {
@@ -106,3 +80,5 @@ graphql_object!(MutationRoot: Context |&self| {
     //     }
     // }
 });
+
+pub type Schema = RootNode<'static, Query, Mutation>;
