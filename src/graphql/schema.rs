@@ -1,5 +1,6 @@
 use juniper::{Context as JuniperContext, FieldResult, FieldError};
-use juniper_rocket::{GraphQLResponse, GraphQLRequest};
+use rusted_cypher::error::GraphError;
+use rusted_cypher::cypher::CypherResult;
 
 use crate::models::{Todo, NewTodo};
 use crate::db::PrimaryDb;
@@ -30,12 +31,24 @@ pub struct QueryRoot;
 
 graphql_object!(QueryRoot: Context |&self| {
     field todoItems(&executor) -> FieldResult<Vec<Todo>> {
-        use crate::schema::todos::dsl;
-        use diesel::{RunQueryDsl, QueryDsl};
-
-        dsl::todos.order(dsl::id)
-            .load::<Todo>(&*executor.context().connection)
-            .map_err(Into::into)
+        let statement = "MATCH (t:Todo) RETURN t.id, t.title, t.completed";
+        let result: Result<CypherResult, GraphError> = executor.context().connection.exec(statement).map_err(Into::into);
+        let mut todos: Vec<Todo> = Vec::new();
+        for row in result.unwrap().rows() {
+            let todo = Todo {
+                id: row.get("t.id").unwrap(),
+                title: row.get("t.title").unwrap(),
+                completed: row.get("t.completed").unwrap(),
+            };
+            todos.push(todo);
+        }
+        return Ok(todos);
+        // use crate::schema::todos::dsl;
+        // use diesel::{RunQueryDsl, QueryDsl};
+        //
+        // dsl::todos.order(dsl::id)
+        //     .load::<Todo>(&*executor.context().connection)
+        //     .map_err(Into::into)
     }
 });
 
@@ -46,47 +59,49 @@ graphql_object!(MutationRoot: Context |&self| {
     field add_todo(&executor, title: String, completed: bool) -> FieldResult<Todo>
         as "Create a new todo item and return it"
     {
-        use crate::schema::todos::dsl;
-
-        use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
-
-    (*(executor.context().connection)).immediate_transaction(|| {
-            let new_post = NewTodo {
-                title: &title,
-                completed: completed,
+        let id: i32 = 1256;
+        let statement = format!("CREATE (t:Todo {{id: {:?}, title: \"{:?}\", completed: {:?} }}) RETURN t.id, t.title, t.completed", id, &title, completed);
+        let result: Result<CypherResult, GraphError> = executor.context().connection.exec(statement).map_err(Into::into);
+        // {
+        //     Ok(result) => result,
+        //     Err(error) => return Result::from_error(FieldError::new(format!({}, error), graphql_value!({ "internal_error": "" }))),
+        // };
+        let mut todos: Vec<Todo> = Vec::new();
+        for row in result.unwrap().rows() {
+            let todo = Todo {
+                id: row.get("t.id").unwrap(),
+                title: row.get("t.title").unwrap(),
+                completed: row.get("t.completed").unwrap(),
             };
-
-            diesel::insert_into(crate::schema::todos::table).values(&new_post)
-                .execute(&*executor.context().connection)?;
-
-            dsl::todos.order(dsl::id.desc())
-                .first::<Todo>(&*executor.context().connection)
-        }).map_err(Into::into)
-    }
-
-    field update_todo(&executor, id: i32, completed: Option<bool>, title: Option<String>) -> FieldResult<Option<Todo>>
-        as "Update an existing todo item.\
-        \
-        Will only updated the provided fields - if either `completed` or `title`\
-        are omitted or null, they will be ignored.\
-        \
-        The mutation will return null if no todo item with the specified ID could be found."
-    {
-        use crate::schema::todos::dsl;
-        use diesel::{ExpressionMethods, RunQueryDsl, QueryDsl};
-
-        let updated = diesel::update(dsl::todos.find(id))
-            .set((
-                completed.map(|completed| dsl::completed.eq(completed)),
-                title.map(|title| dsl::title.eq(title)),
-            ))
-            .execute(&*executor.context().connection)?;
-
-        if updated == 0 {
-            Ok(None)
-        } else {
-            Ok(Some(dsl::todos.find(id)
-                .get_result::<Todo>(&*executor.context().connection)?))
+            todos.push(todo);
         }
+        let todo: Todo = todos.pop().unwrap();
+        return Ok(todo);
     }
+
+    // field update_todo(&executor, id: i32, completed: Option<bool>, title: Option<String>) -> FieldResult<Option<Todo>>
+    //     as "Update an existing todo item.\
+    //     \
+    //     Will only updated the provided fields - if either `completed` or `title`\
+    //     are omitted or null, they will be ignored.\
+    //     \
+    //     The mutation will return null if no todo item with the specified ID could be found."
+    // {
+    //     use crate::schema::todos::dsl;
+    //     use diesel::{ExpressionMethods, RunQueryDsl, QueryDsl};
+    //
+    //     let updated = diesel::update(dsl::todos.find(id))
+    //         .set((
+    //             completed.map(|completed| dsl::completed.eq(completed)),
+    //             title.map(|title| dsl::title.eq(title)),
+    //         ))
+    //         .execute(&*executor.context().connection)?;
+    //
+    //     if updated == 0 {
+    //         Ok(None)
+    //     } else {
+    //         Ok(Some(dsl::todos.find(id)
+    //             .get_result::<Todo>(&*executor.context().connection)?))
+    //     }
+    // }
 });

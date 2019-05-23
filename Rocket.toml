@@ -1,2 +1,2 @@
 [development.databases.primary_db]
-url = "database.sqlite"
+url = "http://neo4j:ApFLy9ooW8pTBrFA5wVv8XAupwO6ds246jrRTqs41T9cfWx5hqHxCioPgk6T27ak@localhost:11002/db/data"
