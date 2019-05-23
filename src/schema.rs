@@ -3,7 +3,7 @@ use rusted_cypher::error::GraphError;
 use rusted_cypher::cypher::CypherResult;
 use uuid::Uuid;
 
-use crate::models::{Todo};
+use crate::models::*;
 use crate::db::PrimaryDb;
 
 pub struct Context {
@@ -15,6 +15,20 @@ impl juniper::Context for Context {}
 pub struct Query;
 
 graphql_object!(Query: Context |&self| {
+    field manufacturer(&executor, id: Uuid) -> FieldResult<Manufacturer> {
+        let statement = format!("MATCH (n:Manufacturer) WHERE n.id={:?} RETURN n.id, n.name", id.to_string());
+        let result: CypherResult = executor.context().connection.exec(statement).or_else(|e: GraphError| Err(e))?;
+        let mut manufacturers: Vec<Manufacturer> = Vec::new();
+        for row in result.rows() {
+            let manufacturer = Manufacturer {
+                id: row.get("n.id").unwrap(),
+                name: row.get("n.name").unwrap(),
+            };
+            manufacturers.push(manufacturer);
+        }
+        let manufacturer: Manufacturer = manufacturers.pop().unwrap();
+        return Ok(manufacturer);
+    }
     field todoItems(&executor) -> FieldResult<Vec<Todo>> {
         let statement = "MATCH (t:Todo) RETURN t.id, t.title, t.completed";
         let result: CypherResult = executor.context().connection.exec(statement).or_else(|e: GraphError| Err(e))?;

@@ -10,4 +10,5 @@ rocket_contrib = { version = "0.4", features = ["databases", "cypher_pool", "ser
 rusted_cypher = "1.1"
 juniper = "0.12"
 juniper_rocket = "0.3"
-uuid = { version = "0.7", features = ["v4"] }
+uuid = { version = "0.7", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
