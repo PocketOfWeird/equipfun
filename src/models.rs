@@ -1,5 +1,5 @@
 pub struct Todo {
-    pub id: i32,
+    pub id: String,
     pub title: String,
     pub completed: bool,
 }
