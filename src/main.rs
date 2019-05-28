@@ -5,14 +5,14 @@
 use rocket::routes;
 use rocket_contrib::serve::{StaticFiles};
 
-mod db;
 mod models;
+mod neo;
 mod routes;
 mod schema;
 
 fn main() {
     rocket::ignite()
-        .attach(db::PrimaryDb::fairing())
+        .attach(neo::PrimaryDb::fairing())
         .manage(schema::Schema::new(
             schema::Query,
             schema::Mutation,

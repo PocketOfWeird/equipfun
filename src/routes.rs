@@ -2,8 +2,8 @@ use rocket::{get, post};
 use rocket::response::content;
 use rocket::State;
 
-use crate::db::PrimaryDb;
-use crate::schema::{Context, Schema};
+use crate::neo::{PrimaryDb, Context};
+use crate::schema::Schema;
 
 #[get("/graphql?<request>")]
 pub fn get_graphql_handler(

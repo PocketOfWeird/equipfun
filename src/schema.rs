@@ -4,44 +4,13 @@ use rusted_cypher::cypher::CypherResult;
 use uuid::Uuid;
 
 use crate::models::*;
-use crate::db::PrimaryDb;
-
-pub struct Context {
-    pub connection: PrimaryDb
-}
-
-impl juniper::Context for Context {}
+use crate::neo::{Context, call};
 
 pub struct Query;
 
 graphql_object!(Query: Context |&self| {
     field manufacturer(&executor, id: Uuid) -> FieldResult<Manufacturer> {
-        let statement = format!("MATCH (n:Manufacturer) WHERE n.id={:?} RETURN n.id, n.name", id.to_string());
-        let result: CypherResult = executor.context().connection.exec(statement).or_else(|e: GraphError| Err(e))?;
-        let mut manufacturers: Vec<Manufacturer> = Vec::new();
-        for row in result.rows() {
-            let manufacturer = Manufacturer {
-                id: row.get("n.id").unwrap(),
-                name: row.get("n.name").unwrap(),
-            };
-            manufacturers.push(manufacturer);
-        }
-        let manufacturer: Manufacturer = manufacturers.pop().unwrap();
-        return Ok(manufacturer);
-    }
-    field todoItems(&executor) -> FieldResult<Vec<Todo>> {
-        let statement = "MATCH (t:Todo) RETURN t.id, t.title, t.completed";
-        let result: CypherResult = executor.context().connection.exec(statement).or_else(|e: GraphError| Err(e))?;
-        let mut todos: Vec<Todo> = Vec::new();
-        for row in result.rows() {
-            let todo = Todo {
-                id: row.get("t.id").unwrap(),
-                title: row.get("t.title").unwrap(),
-                completed: row.get("t.completed").unwrap(),
-            };
-            todos.push(todo);
-        }
-        return Ok(todos);
+        return call(&executor, &Manufacturer::cypher_query_single(id), Manufacturer::mapper);
     }
 });
 
@@ -49,24 +18,40 @@ graphql_object!(Query: Context |&self| {
 pub struct Mutation;
 
 graphql_object!(Mutation: Context |&self| {
-    field add_todo(&executor, title: String, completed: bool) -> FieldResult<Todo>
-        as "Create a new todo item and return it"
-    {
+    field add_manufacturer(&executor, name: String) -> FieldResult<Manufacturer> {
         let id: String = Uuid::new_v4().to_string();
-        let statement = format!("CREATE (t:Todo {{id: {:?}, title: {:?}, completed: {:?} }}) RETURN t.id, t.title, t.completed", id, &title, completed);
+        let statement = format!("CREATE (n:Manufacturer {{ id: {:?}, name: {:?} }}) RETURN n.id, n.name", id, name);
         let result: CypherResult = executor.context().connection.exec(statement).or_else(|e: GraphError| Err(e))?;
-        let mut todos: Vec<Todo> = Vec::new();
+        let mut manufacturers: Vec<Manufacturer> = Vec::new();
         for row in result.rows() {
-            let todo = Todo {
-                id: row.get("t.id").unwrap(),
-                title: row.get("t.title").unwrap(),
-                completed: row.get("t.completed").unwrap(),
+            let id: String = row.get("n.id").unwrap();
+            let manufacturer = Manufacturer {
+                id: Uuid::parse_str(&id).unwrap(),
+                name: row.get("n.name").unwrap(),
             };
-            todos.push(todo);
+            manufacturers.push(manufacturer);
         }
-        let todo: Todo = todos.pop().unwrap();
-        return Ok(todo);
+        let manufacturer: Manufacturer = manufacturers.pop().unwrap();
+        return Ok(manufacturer);
     }
+    // field add_todo(&executor, title: String, completed: bool) -> FieldResult<Todo>
+    //     as "Create a new todo item and return it"
+    // {
+    //     let id: String = Uuid::new_v4().to_string();
+    //     let statement = format!("CREATE (t:Todo {{id: {:?}, title: {:?}, completed: {:?} }}) RETURN t.id, t.title, t.completed", id, &title, completed);
+    //     let result: CypherResult = executor.context().connection.exec(statement).or_else(|e: GraphError| Err(e))?;
+    //     let mut todos: Vec<Todo> = Vec::new();
+    //     for row in result.rows() {
+    //         let todo = Todo {
+    //             id: row.get("t.id").unwrap(),
+    //             title: row.get("t.title").unwrap(),
+    //             completed: row.get("t.completed").unwrap(),
+    //         };
+    //         todos.push(todo);
+    //     }
+    //     let todo: Todo = todos.pop().unwrap();
+    //     return Ok(todo);
+    // }
 
     // field update_todo(&executor, id: i32, completed: Option<bool>, title: Option<String>) -> FieldResult<Option<Todo>>
     //     as "Update an existing todo item.\

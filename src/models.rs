@@ -1,5 +1,6 @@
 use uuid::Uuid;
 use chrono::{ DateTime, Utc };
+use rusted_cypher::cypher::result::Row;
 
 #[derive(juniper::GraphQLObject)]
 /// A model produced by a manufacturer
@@ -21,6 +22,19 @@ pub struct Manufacturer {
     pub name: String,
 }
 
+impl Manufacturer {
+    pub fn mapper(row: &Row) -> Manufacturer {
+        let id: String = row.get("n.id").unwrap();
+        return Manufacturer {
+            id: Uuid::parse_str(&id).unwrap(),
+            name: row.get("n.name").unwrap(),
+        };
+    }
+    pub fn cypher_query_single(id: Uuid) -> String {
+        return format!("MATCH (n:Manufacturer) WHERE n.id={:?} RETURN n.id, n.name", id.to_string());
+    }
+}
+
 #[derive(juniper::GraphQLEnum)]
 pub enum Status {
     CheckedIn,
@@ -32,73 +46,73 @@ pub enum Status {
 }
 
 #[derive(juniper::GraphQLObject)]
-#[graphql(description="A barcoded piece of equipment")]
+/// A barcoded piece of equipment
 pub struct Piece {
-    #[graphql(description="The unique id of the piece")]
+    /// The unique id of the piece
     pub id: Uuid,
-    #[graphql(description="The barcode of the piece")]
+    /// The barcode of the piece
     pub barcode: String,
-    #[graphql(description="The name of the piece")]
+    /// The name of the piece
     pub name: String,
-    #[graphql(description="The status of the piece")]
+    /// The status of the piece
     pub status: Status,
-    #[graphql(description="The id of the equipment the piece belongs to")]
+    /// The id of the equipment the piece belongs to
     pub equipment_id: Uuid,
 }
 
 #[derive(juniper::GraphQLObject)]
-#[graphql(description="A specific type of equipment")]
+/// A specific type of equipment
 pub struct Equipment {
-    #[graphql(description="The unique id of the equipment")]
+    /// The unique id of the equipment
     pub id: Uuid,
-    #[graphql(description="The manufacturer of the equipment")]
+    /// The manufacturer of the equipment
     pub manufacturer: Manufacturer,
-    #[graphql(description="The model of the equipment")]
+    /// The model of the equipment
     pub model: Model,
-    #[graphql(description="The barcoded pieces of the equipment")]
+    /// The barcoded pieces of the equipment
     pub pieces: Vec<Piece>,
-    #[graphql(description="The id of the kit the equipment may belong to")]
+    /// The id of the kit the equipment may belong to
     pub kit_id: Uuid,
-    #[graphql(description="The id of the category the equipment may belong to")]
+    /// The id of the category the equipment may belong to
     pub category_id: Uuid,
 }
 
 #[derive(juniper::GraphQLObject)]
-#[graphql(description="A kit of different types of equipment")]
+/// A kit of different types of equipment
 pub struct Kit {
-    #[graphql(description="The unique id of the kit")]
+    /// The unique id of the kit
     pub id: Uuid,
-    #[graphql(description="The name of the kit")]
+    /// The name of the kit
     pub name: String,
-    #[graphql(description="The equipment in the kit")]
+    /// The equipment in the kit
     pub equipment: Vec<Equipment>,
-    #[graphql(description="The id of the category the kit may belong to")]
+    /// The id of the category the kit may belong to
     pub category_id: Uuid,
 }
 
 #[derive(juniper::GraphQLObject)]
-#[graphql(description="A category of equipment and kits")]
+/// A category of equipment and kits
 pub struct Category {
-    #[graphql(description="The unique id of the category")]
+    /// The unique id of the category
     pub id: Uuid,
-    #[graphql(description="The name of the category")]
+    /// The name of the category
     pub name: String,
-    #[graphql(description="The equipment in the category that is not in a kit")]
+    /// The equipment in the category that is not in a kit
     pub kitless_equipment: Vec<Equipment>,
-    #[graphql(description="The kits in the category")]
+    /// The kits in the category
     pub kits: Vec<Kit>,
 }
 
 #[derive(juniper::GraphQLObject)]
-#[graphql(description="A room that can be reserved")]
+/// A room that can be reserved
 pub struct Room {
-    #[graphql(description="The unique id of the room")]
+    /// The unique id of the room
     pub id: Uuid,
-    #[graphql(description="The name of the room")]
+    /// The name of the room
     pub name: String,
-    #[graphql(description="The location of the room")]
+    /// The location of the room
     pub location: String,
-    #[graphql(description="The description of the room")]
+    /// The description of the room
     pub description: String,
 }
 
@@ -111,17 +125,17 @@ pub enum Role {
 }
 
 #[derive(juniper::GraphQLObject)]
-#[graphql(description="A person in the system")]
-struct Person {
-    #[graphql(description="The unique id of the person")]
+/// A person in the system
+pub struct Person {
+    /// The unique id of the person
     pub id: Uuid,
-    #[graphql(description="The username of the person")]
+    /// The username of the perso
     pub username: String,
-    #[graphql(description="The first name of the person")]
+    /// The first name of the person
     pub first_name: String,
-    #[graphql(description="The last name of the person")]
+    /// The last name of the person
     pub last_name: String,
-    #[graphql(description="The role of the person in the system")]
+    /// The role of the person in the system
     pub role: Role,
 }
 
@@ -133,50 +147,51 @@ pub enum Season {
 }
 
 #[derive(juniper::GraphQLObject)]
-#[graphql(description="A semester within an academic year")]
+/// A semester within an academic year
 pub struct Semester {
-    #[graphql(description="The unique id of the semester")]
+    /// The unique id of the semester
     pub id: Uuid,
-    #[graphql(description="Either FA, SP, or SUM")]
+    /// Either FA, SP, or SUM
     pub season: Season,
+    /// The year of the semester
     pub year: i32,
 }
 
 #[derive(juniper::GraphQLObject)]
-#[graphql(description="A project done within a course")]
+/// A project done within a course
 pub struct Project {
-    #[graphql(description="The unique id of the project")]
+    /// The unique id of the project
     pub id: Uuid,
-    #[graphql(description="The name of the project")]
+    /// The name of the project
     pub name: String,
-    #[graphql(description="The id of the course the project belongs to")]
+    /// The id of the course the project belongs to
     pub course_id: Uuid,
 }
 
 #[derive(juniper::GraphQLObject)]
-#[graphql(description="An instructional course taken by students in the system")]
+/// An instructional course taken by students in the system
 pub struct Course {
-    #[graphql(description="The unique id of the course")]
+    /// The unique id of the course
     pub id: Uuid,
-    #[graphql(description="The name of the course")]
+    /// The name of the course
     pub name: String,
-    #[graphql(description="The code of the course")]
+    /// The code of the course
     pub code: String,
-    #[graphql(description="The semester of the course")]
+    /// The semester of the course
     pub semester: Semester,
-    #[graphql(description="The instructor of the course")]
+    /// The instructor of the course
     pub instructor: Person,
-    #[graphql(description="The students in the course")]
+    /// The students in the course
     pub students: Vec<Person>,
-    #[graphql(description="The projects in the course")]
+    /// The projects in the course
     pub projects: Vec<Project>,
-    #[graphql(description="The equipment allowed for use in the course")]
+    /// The equipment allowed for use in the course
     pub equipment: Vec<Equipment>,
-    #[graphql(description="The kits allowed for use in the course")]
+    /// The kits allowed for use in the course
     pub kits: Vec<Kit>,
-    #[graphql(description="The categories of kits and equipment allowed for use in the course")]
+    /// The categories of kits and equipment allowed for use in the course
     pub categories: Vec<Category>,
-    #[graphql(description="The rooms allowed for use in the course")]
+    /// The rooms allowed for use in the course
     pub rooms: Vec<Room>,
 }
 
