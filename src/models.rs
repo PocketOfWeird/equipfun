@@ -30,8 +30,15 @@ impl Manufacturer {
             name: row.get("n.name").unwrap(),
         };
     }
-    pub fn cypher_query_single(id: Uuid) -> String {
+    pub fn query_single(id: Uuid) -> String {
         return format!("MATCH (n:Manufacturer) WHERE n.id={:?} RETURN n.id, n.name", id.to_string());
+    }
+    pub fn query_all() -> String {
+        return String::from("MATCH (n:Manufacturer) RETURN n.id, n.name");
+    }
+    pub fn mutate_create(name: String) -> String {
+        let id: String = Uuid::new_v4().to_string();
+        return format!("CREATE (n:Manufacturer {{ id: {:?}, name: {:?} }}) RETURN n.id, n.name", id, name);
     }
 }
 
