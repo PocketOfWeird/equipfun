@@ -13,6 +13,31 @@ pub struct Model {
     pub manufacturer_id: Uuid,
 }
 
+impl Model {
+    pub fn mapper(row: &Row) -> Model {
+        let id: String = row.get("n.id").unwrap();
+        return Model {
+            id: Uuid::parse_str(&id).unwrap(),
+            name: row.get("n.name").unwrap(),
+            manufacturer_id: Uuid::parse_str("").unwrap(),
+        };
+    }
+    pub fn query_single(id: Uuid) -> String {
+        return format!("MATCH (n {{id: {:?} }}) RETURN n.id, n.name, n.manufacturer_id", id.to_string());
+    }
+    pub fn query_all() -> String {
+        return String::from("MATCH (n:Model) RETURN n.id, n.name, n.manufacturer_id");
+    }
+    pub fn mutate_create(name: String, manufacturer_id: Uuid) -> String {
+        let id: String = Uuid::new_v4().to_string();
+        let manufacturer_id = manufacturer_id.to_string();
+        return format!("CREATE (n:Model {{ id: {:?}, name: {:?}, manufacturer_id: {:?} }}) WITH n MATCH (m:Manufacturer {{ id: {:?} }}) WITH m CREATE (n)-[r:OF]->(m) RETURN n.id, n.name, n.manufacturer_id", id, name, manufacturer_id, manufacturer_id);
+    }
+    pub fn mutate_update(id: Uuid, name: String) -> String {
+        return format!("MATCH (n {{id: {:?} }}) SET n.name = {:?} RETURN n.id, n.name", id.to_string(), name);
+    }
+}
+
 #[derive(juniper::GraphQLObject)]
 /// A manufacturer of equipment
 pub struct Manufacturer {
@@ -31,7 +56,7 @@ impl Manufacturer {
         };
     }
     pub fn query_single(id: Uuid) -> String {
-        return format!("MATCH (n:Manufacturer) WHERE n.id={:?} RETURN n.id, n.name", id.to_string());
+        return format!("MATCH (n {{id: {:?} }}) RETURN n.id, n.name", id.to_string());
     }
     pub fn query_all() -> String {
         return String::from("MATCH (n:Manufacturer) RETURN n.id, n.name");
@@ -39,6 +64,9 @@ impl Manufacturer {
     pub fn mutate_create(name: String) -> String {
         let id: String = Uuid::new_v4().to_string();
         return format!("CREATE (n:Manufacturer {{ id: {:?}, name: {:?} }}) RETURN n.id, n.name", id, name);
+    }
+    pub fn mutate_update(id: Uuid, name: String) -> String {
+        return format!("MATCH (n {{id: {:?} }}) SET n.name = {:?} RETURN n.id, n.name", id.to_string(), name);
     }
 }
 
@@ -61,6 +89,8 @@ pub struct Piece {
     pub barcode: String,
     /// The name of the piece
     pub name: String,
+    /// The serial number of the piece
+    pub serial: String,
     /// The status of the piece
     pub status: Status,
     /// The id of the equipment the piece belongs to

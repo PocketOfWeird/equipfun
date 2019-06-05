@@ -5,7 +5,7 @@
 use rocket::routes;
 use rocket_contrib::serve::{StaticFiles};
 
-mod models;
+mod types;
 mod neo;
 mod routes;
 mod schema;
